@@ -100,7 +100,7 @@ async function receipt() {
 }
 async function artifact() {
   await call('POST', '/artifact', {
-    operation: op() + '-artifact', revision: await rev(), digest: 'artifact-digest-1',
+    operation: op() + '-artifact', revision: await rev(), digest: 'sha256:root-req-1',
   });
 }
 async function review(conclusion) {

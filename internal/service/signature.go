@@ -229,6 +229,12 @@ func (s *Service) RegisterArtifact(ctx context.Context, req ArtifactRequest) (Ar
 		if err != nil {
 			return ArtifactResult{}, err
 		}
+		if sess.Digest != string(c.RequestDigest) || sess.KeyVersion != string(c.KeyVersion) {
+			return ArtifactResult{}, fmt.Errorf("%w: HSM session is not bound to the frozen request", ErrInvalidArgument)
+		}
+		if req.Digest != sess.Digest {
+			return ArtifactResult{}, fmt.Errorf("%w: artifact digest is not bound to the HSM session", ErrInvalidArgument)
+		}
 		if sess.Receipt == "" {
 			return ArtifactResult{}, fmt.Errorf("artifact registration requires an HSM receipt")
 		}

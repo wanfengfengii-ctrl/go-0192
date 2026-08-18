@@ -98,7 +98,7 @@ func TestFullSealWorkflow(t *testing.T) {
 	}
 	v, _ = svc.Get(ctx, "c1")
 	if _, err := svc.RegisterArtifact(ctx, ArtifactRequest{
-		CeremonyID: "c1", Operation: "artifact", Revision: v.Ceremony.Revision, Digest: "art-1",
+		CeremonyID: "c1", Operation: "artifact", Revision: v.Ceremony.Revision, Digest: "digest-1",
 	}); err != nil {
 		t.Fatalf("artifact: %v", err)
 	}
@@ -299,7 +299,7 @@ func TestSealQuarantineRaceSingleTerminal(t *testing.T) {
 	}
 	v, _ = svc.Get(ctx, "c1")
 	if _, err := svc.RegisterArtifact(ctx, ArtifactRequest{
-		CeremonyID: "c1", Operation: "artifact", Revision: v.Ceremony.Revision, Digest: "a-1",
+		CeremonyID: "c1", Operation: "artifact", Revision: v.Ceremony.Revision, Digest: "digest-1",
 	}); err != nil {
 		t.Fatalf("artifact: %v", err)
 	}
@@ -390,7 +390,7 @@ func TestSealRequiresApprovedReview(t *testing.T) {
 	}
 	v, _ = svc.Get(ctx, "c1")
 	if _, err := svc.RegisterArtifact(ctx, ArtifactRequest{
-		CeremonyID: "c1", Operation: "a", Revision: v.Ceremony.Revision, Digest: "d",
+		CeremonyID: "c1", Operation: "a", Revision: v.Ceremony.Revision, Digest: "digest-1",
 	}); err != nil {
 		t.Fatalf("artifact: %v", err)
 	}

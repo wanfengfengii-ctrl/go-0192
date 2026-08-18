@@ -126,7 +126,7 @@ func TestFullFlowViaHTTP(t *testing.T) {
 	rev++
 
 	doJSON(t, ts, http.MethodPost, "/api/v1/ceremonies/c1/artifact", map[string]any{
-		"operation": "artifact", "revision": rev, "digest": "art-1",
+		"operation": "artifact", "revision": rev, "digest": "digest-1",
 	}, http.StatusOK)
 	rev++
 
