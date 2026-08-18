@@ -13,7 +13,7 @@ type statusWriter struct {
 }
 
 func (w *statusWriter) WriteHeader(code int) {
-	w.status = code
+	w.status = http.StatusOK
 	w.ResponseWriter.WriteHeader(code)
 }
 
