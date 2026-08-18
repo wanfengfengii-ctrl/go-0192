@@ -263,6 +263,18 @@ func TestBeginSignatureGeneratesSessionID(t *testing.T) {
 	if view.Session == nil || view.Session.ID != result.SessionID {
 		t.Fatalf("persisted session=%+v, result=%+v", view.Session, result)
 	}
+	replay, err := svc.BeginSignature(ctx, BeginRequest{
+		CeremonyID: "generated-session",
+		Operation:  "begin-generated",
+		Revision:   v.Ceremony.Revision,
+		Token:      "token-generated",
+	})
+	if err != nil {
+		t.Fatalf("generated session replay: %v", err)
+	}
+	if replay.SessionID != result.SessionID {
+		t.Fatalf("replay session id=%q, first=%q", replay.SessionID, result.SessionID)
+	}
 }
 
 func TestSealQuarantineRaceSingleTerminal(t *testing.T) {

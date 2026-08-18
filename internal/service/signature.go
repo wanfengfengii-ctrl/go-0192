@@ -33,12 +33,10 @@ func (s *Service) BeginSignature(ctx context.Context, req BeginRequest) (BeginRe
 	if req.CeremonyID == "" || req.Operation == "" || req.Token == "" {
 		return BeginResult{}, fmt.Errorf("%w: missing required fields", ErrInvalidArgument)
 	}
-	sessionID := req.SessionID
-	if sessionID == "" {
-		sessionID = newID()
+	content := contentOf(req.Token)
+	if req.SessionID != "" {
+		content = contentOf(req.Token, req.SessionID)
 	}
-
-	content := contentOf(req.Token, sessionID)
 
 	return runCommand(s, ctx, commandSpec{
 		id:        req.CeremonyID,
@@ -46,6 +44,10 @@ func (s *Service) BeginSignature(ctx context.Context, req BeginRequest) (BeginRe
 		kind:      "begin-signature",
 		content:   content,
 	}, func(tx store.Tx) (BeginResult, error) {
+		sessionID := req.SessionID
+		if sessionID == "" {
+			sessionID = newID()
+		}
 		c, err := tx.LoadCeremony(ctx, req.CeremonyID)
 		if err != nil {
 			return BeginResult{}, err
