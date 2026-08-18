@@ -4,7 +4,10 @@ package api
 
 import (
 	"context"
+	"crypto/subtle"
 	"net/http"
+	"os"
+	"strings"
 	"time"
 
 	"quorumforge/internal/service"
@@ -25,10 +28,33 @@ func New(svc *service.Service, addr string) *Server {
 		svc: svc,
 		server: &http.Server{
 			Addr:              addr,
-			Handler:           recoverMiddleware(logMiddleware(mux)),
+			Handler:           recoverMiddleware(logMiddleware(authenticateAPI(os.Getenv("QUORUMFORGE_API_TOKEN"), mux))),
 			ReadHeaderTimeout: 10 * time.Second,
 		},
 	}
+}
+
+// authenticateAPI rejects callers without the configured bearer credential
+// before an API handler can invoke the ceremony service. Operational endpoints
+// remain public so that health checks and the browser shell stay reachable.
+func authenticateAPI(token string, next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !strings.HasPrefix(r.URL.Path, "/api/") {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		parts := strings.Fields(r.Header.Get("Authorization"))
+		if token == "" || len(parts) != 2 || !strings.EqualFold(parts[0], "Bearer") ||
+			subtle.ConstantTimeCompare([]byte(parts[1]), []byte(token)) != 1 {
+			w.Header().Set("WWW-Authenticate", `Bearer realm="quorumforge"`)
+			w.Header().Set("Cache-Control", "no-store")
+			writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
 }
 
 // routes registers every endpoint.
