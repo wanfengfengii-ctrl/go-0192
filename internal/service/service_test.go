@@ -234,6 +234,37 @@ func TestSingleSessionUnderConcurrency(t *testing.T) {
 	}
 }
 
+func TestBeginSignatureGeneratesSessionID(t *testing.T) {
+	svc, _ := newTestService(t)
+	ctx := context.Background()
+	lockCeremony(t, svc, "generated-session")
+	confirmAll(t, svc, "generated-session")
+	v, err := svc.Get(ctx, "generated-session")
+	if err != nil {
+		t.Fatalf("get: %v", err)
+	}
+
+	result, err := svc.BeginSignature(ctx, BeginRequest{
+		CeremonyID: "generated-session",
+		Operation:  "begin-generated",
+		Revision:   v.Ceremony.Revision,
+		Token:      "token-generated",
+	})
+	if err != nil {
+		t.Fatalf("begin: %v", err)
+	}
+	if len(result.SessionID) != 32 {
+		t.Fatalf("generated session id=%q, want 32 hex characters", result.SessionID)
+	}
+	view, err := svc.Get(ctx, "generated-session")
+	if err != nil {
+		t.Fatalf("get after begin: %v", err)
+	}
+	if view.Session == nil || view.Session.ID != result.SessionID {
+		t.Fatalf("persisted session=%+v, result=%+v", view.Session, result)
+	}
+}
+
 func TestSealQuarantineRaceSingleTerminal(t *testing.T) {
 	svc, _ := newTestService(t)
 	ctx := context.Background()

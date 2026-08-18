@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"quorumforge/internal/ceremony"
+	"quorumforge/internal/hsm"
 	"quorumforge/internal/store"
 )
 
@@ -29,11 +30,15 @@ type BeginResult struct {
 // BeginSignature consumes a one-time token and opens exactly one HSM session
 // bound to the current revision, request digest and key version.
 func (s *Service) BeginSignature(ctx context.Context, req BeginRequest) (BeginResult, error) {
-	if req.CeremonyID == "" || req.Operation == "" || req.Token == "" || req.SessionID == "" {
+	if req.CeremonyID == "" || req.Operation == "" || req.Token == "" {
 		return BeginResult{}, fmt.Errorf("%w: missing required fields", ErrInvalidArgument)
 	}
+	sessionID := req.SessionID
+	if sessionID == "" {
+		sessionID = newID()
+	}
 
-	content := contentOf(req.Token, req.SessionID)
+	content := contentOf(req.Token, sessionID)
 
 	return runCommand(s, ctx, commandSpec{
 		id:        req.CeremonyID,
@@ -58,6 +63,19 @@ func (s *Service) BeginSignature(ctx context.Context, req BeginRequest) (BeginRe
 			return BeginResult{}, err
 		}
 
+		// Validate the same binding that the HSM enforces before consuming the
+		// durable one-time token. The store remains the source of truth for
+		// replay protection across process restarts.
+		if err := hsm.ValidateSession(hsm.Session{
+			ID:         hsm.SessionID(sessionID),
+			Revision:   uint64(c.Revision),
+			Digest:     string(c.RequestDigest),
+			KeyVersion: string(c.KeyVersion),
+			Token:      hsm.Token(req.Token),
+		}); err != nil {
+			return BeginResult{}, fmt.Errorf("%w: %v", ErrInvalidArgument, err)
+		}
+
 		consumed, err := tx.ConsumeToken(ctx, req.CeremonyID, req.Token)
 		if err != nil {
 			return BeginResult{}, err
@@ -67,7 +85,7 @@ func (s *Service) BeginSignature(ctx context.Context, req BeginRequest) (BeginRe
 		}
 
 		if err := tx.SaveSession(req.CeremonyID, store.SessionRecord{
-			ID:         req.SessionID,
+			ID:         sessionID,
 			Revision:   uint64(c.Revision),
 			Digest:     string(c.RequestDigest),
 			KeyVersion: string(c.KeyVersion),
@@ -81,7 +99,7 @@ func (s *Service) BeginSignature(ctx context.Context, req BeginRequest) (BeginRe
 		}
 
 		return BeginResult{
-			SessionID:  req.SessionID,
+			SessionID:  sessionID,
 			Revision:   c.Revision,
 			Digest:     c.RequestDigest,
 			KeyVersion: c.KeyVersion,

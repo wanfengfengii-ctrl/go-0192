@@ -2,11 +2,13 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"quorumforge/internal/ceremony"
 	"quorumforge/internal/policy"
 	"quorumforge/internal/store"
+	"quorumforge/internal/witness"
 )
 
 // ConfirmRequest records a witness confirmation toward quorum.
@@ -108,10 +110,20 @@ func (s *Service) ConfirmWitness(ctx context.Context, req ConfirmRequest) (Confi
 		if err != nil {
 			return ConfirmResult{}, err
 		}
+		confirmations := make([]witness.Confirmation, 0, len(existing))
 		for _, w := range existing {
-			if w.PersonID == req.PersonID {
+			confirmations = append(confirmations, witness.Confirmation{
+				PersonID: witness.PersonID(w.PersonID), Credential: witness.Credential(w.Credential), Revision: w.Revision,
+			})
+		}
+		ledger := witness.NewLedgerFrom(confirmations)
+		if err := ledger.Record(witness.Confirmation{
+			PersonID: witness.PersonID(req.PersonID), Credential: witness.Credential(req.Credential), Revision: req.IdentityRevision,
+		}); err != nil {
+			if errors.Is(err, witness.ErrDuplicateWitness) {
 				return ConfirmResult{}, fmt.Errorf("%w: %s already confirmed", ErrDuplicateWitness, req.PersonID)
 			}
+			return ConfirmResult{}, fmt.Errorf("%w: %v", ErrInvalidArgument, err)
 		}
 
 		if err := tx.SaveWitness(req.CeremonyID, store.WitnessRecord{
@@ -122,7 +134,7 @@ func (s *Service) ConfirmWitness(ctx context.Context, req ConfirmRequest) (Confi
 			return ConfirmResult{}, err
 		}
 
-		count := len(existing) + 1
+		count := ledger.Count()
 
 		if threshold > 0 && count >= threshold {
 			if err := c.Transition(ceremony.StatePendingSignature); err != nil {
