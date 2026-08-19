@@ -53,6 +53,9 @@ func (s *Service) Review(ctx context.Context, req ReviewRequest) (ReviewResult, 
 		if err := c.GuardRevision(req.Revision); err != nil {
 			return ReviewResult{}, err
 		}
+		if c.ReviewConclusion != ceremony.ReviewPending {
+			return ReviewResult{}, ErrReviewExists
+		}
 
 		art, err := tx.LoadArtifact(ctx, req.CeremonyID)
 		if err != nil {

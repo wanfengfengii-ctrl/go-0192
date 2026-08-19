@@ -21,4 +21,5 @@ var (
 	ErrTokenReused       = errors.New("signing token already consumed")
 	ErrArtifactExists    = errors.New("signature artifact already registered")
 	ErrNoSession         = errors.New("no open signing session")
+	ErrReviewExists      = errors.New("review conclusion already recorded")
 )

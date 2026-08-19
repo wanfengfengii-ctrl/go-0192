@@ -36,6 +36,7 @@ func mapError(err error) (int, string) {
 		errors.Is(err, service.ErrSessionExists),
 		errors.Is(err, service.ErrTokenReused),
 		errors.Is(err, service.ErrArtifactExists),
+		errors.Is(err, service.ErrReviewExists),
 		errors.Is(err, service.ErrDuplicateWitness),
 		errors.Is(err, service.ErrQuorumNotReached),
 		errors.Is(err, service.ErrNoSession):
