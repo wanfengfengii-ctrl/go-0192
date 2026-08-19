@@ -322,6 +322,7 @@ func (s *Store) LoadAggregate(ctx context.Context, id ceremony.ID) (*store.Aggre
 			return nil, err
 		}
 		agg.Scope = append(agg.Scope, e)
+		agg.Ceremony.ParticipantScope = append(agg.Ceremony.ParticipantScope, e.PersonID)
 	}
 	if err := scopeRows.Err(); err != nil {
 		scopeRows.Close()
