@@ -24,6 +24,9 @@ func parseConfig(args []string) (config, error) {
 	if err := fs.Parse(args); err != nil {
 		return config{}, err
 	}
+	if fs.NArg() > 0 {
+		return config{}, fmt.Errorf("unsupported positional argument %q", fs.Arg(0))
+	}
 	if *addr == "" {
 		return config{}, fmt.Errorf("listen address must not be empty")
 	}
